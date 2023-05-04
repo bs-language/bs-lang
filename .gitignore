@@ -67,3 +67,4 @@ docs/_build
 .DS_store
 
 /cmake-build-release
+/cmake-build-debug

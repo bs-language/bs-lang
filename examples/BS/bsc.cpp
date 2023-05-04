@@ -1,28 +1,29 @@
-#include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
-#include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
-#include "llvm/IR/Verifier.h"
+
+#include "llvm/ExecutionEngine/Orc/LLJIT.h"
+#include "llvm/ADT/Optional.h"
+#include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/CodeGen.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/raw_ostream.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
+#include "llvm/TargetParser/Host.h"
 
 using namespace llvm;
 
-namespace {
-
-//cl::opt<std::string> InputFilename(cl::Positional,
-//                                   cl::desc("Input filename (.bs)"));
-
+// cl::opt<std::string> InputFilename(cl::Positional, cl::desc("Input filename (.bs)"));
 cl::opt<std::string> OutputFilename("o", cl::desc("Output filename"));
-
 cl::opt<bool> JIT("jit", cl::desc("Run program Just-In-Time"));
 
 void addMainFunction(Module *mod) {
@@ -51,30 +52,79 @@ void addMainFunction(Module *mod) {
                      ConstantInt::get(mod->getContext(), APInt(32, 0)), bb);
 }
 
-} // namespace
+void compileToObj(Module *mod) {
+  auto TargetTriple = sys::getDefaultTargetTriple();
+  mod->setTargetTriple(TargetTriple);
+
+  std::string Error;
+  const auto *Target = TargetRegistry::lookupTarget(TargetTriple, Error);
+  if (!Target) {
+    errs() << Error;
+    exit(1);
+  }
+
+  const auto *CPU = "generic";
+  const auto *Features = "";
+
+  TargetOptions opt;
+  const auto RM = std::optional<Reloc::Model>();
+  auto *TheTargetMachine =
+      Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
+
+  mod->setDataLayout(TheTargetMachine->createDataLayout());
+
+  const auto *Filename = "output.o";
+  std::error_code EC;
+  raw_fd_ostream dest(Filename, EC, sys::fs::OF_None);
+
+  if (EC) {
+    errs() << "Could not open file: " << EC.message();
+    exit(1);
+  }
+
+  legacy::PassManager pass;
+  auto FileType = CGFT_ObjectFile;
+
+  if (TheTargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+    errs() << "TheTargetMachine can't emit a file of this type";
+    exit(1);
+  }
+
+  pass.run(*mod);
+  dest.flush();
+}
+
+void runLLJIT(orc::ThreadSafeModule TSM){
+  outs() << "------- Running JIT -------\n";
+  ExitOnError ExitOnErr;
+  ExitOnErr.setBanner("bs jit: ");
+
+  auto lljit = ExitOnErr(orc::LLJITBuilder().create());
+
+  ExitOnErr(lljit->addIRModule(std::move(TSM)));
+
+  auto MainAddr = ExitOnErr(lljit->lookup("main"));
+  int (*Main)(int, char**) = MainAddr.toPtr<int(int, char**)>();
+  Main(0, nullptr);
+}
 
 int main(int argc, char **argv) {
   cl::ParseCommandLineOptions(argc, argv, " BS compiler\n");
 
-  LLVMContext Context;
+  InitializeNativeTarget();
+  InitializeNativeTargetAsmPrinter();
+  auto Context = std::make_unique<LLVMContext>();
 
   // Create some module to put our function into it.
-  std::unique_ptr<Module> Owner(new Module("bs main module", Context));
-  Module *M = Owner.get();
-  addMainFunction(M);
-  M->print(outs(), nullptr);
+  std::unique_ptr<Module> MainModule(new Module("bs main module", *Context));
+  addMainFunction(MainModule.get());
+  MainModule->print(outs(), nullptr);
 
   if (JIT) {
-    InitializeNativeTarget();
-    InitializeNativeTargetAsmPrinter();
-
-    outs() << "------- Running JIT -------\n";
-
-    // run jit
+    runLLJIT(orc::ThreadSafeModule(std::move(MainModule), std::move(Context)));
+  } else {
+    compileToObj(MainModule.get());
   }
-
-  //add code here that generate machine code
-
   llvm_shutdown();
 
   return 0;
