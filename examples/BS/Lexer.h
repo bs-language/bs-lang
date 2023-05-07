@@ -1,6 +1,3 @@
-//
-// Created by zihasoo on 2023-05-04.
-//
 
 #ifndef LLVM_LEXER_H
 #define LLVM_LEXER_H
@@ -35,14 +32,19 @@ class Lexer {
   };
 
   int LastChar = ' ';
-  std::istream* inputSource;
+  std::string LastWord;
+  std::istream* InputSource;
 
 public:
+  Lexer() = default;
   Lexer(const std::string&);
   ~Lexer();
 
-  int getToken();
+  void setInputSource(const std::string&);
 
+  Token getToken(); //현재 입력 스트림에서 토큰 타입(enum) 얻기
+  int getChar(); //현재 입력 스트림에서 한 글자 얻기 (수식 및 기타 연산용)
+  std::string getWord(); //getToken 함수로부터 얻어진 단어 (string) 반환
 };
 
 #endif // LLVM_LEXER_H
