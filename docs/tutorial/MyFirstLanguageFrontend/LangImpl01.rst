@@ -100,16 +100,16 @@ from standard input. Its definition starts as:
 
     /// gettok - Return the next token from standard input.
     static int gettok() {
-      static int LastChar = ' ';
+      static int lastChar = ' ';
 
       // Skip any whitespace.
-      while (isspace(LastChar))
-        LastChar = getchar();
+      while (isspace(lastChar))
+        lastChar = getchar();
 
 ``gettok`` works by calling the C ``getchar()`` function to read
 characters one at a time from standard input. It eats them as it
 recognizes them and stores the last character read, but not processed,
-in LastChar. The first thing that it has to do is ignore whitespace
+in lastChar. The first thing that it has to do is ignore whitespace
 between tokens. This is accomplished with the loop above.
 
 The next thing ``gettok`` needs to do is recognize identifiers and
@@ -118,10 +118,10 @@ loop:
 
 .. code-block:: c++
 
-      if (isalpha(LastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
-        IdentifierStr = LastChar;
-        while (isalnum((LastChar = getchar())))
-          IdentifierStr += LastChar;
+      if (isalpha(lastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
+        IdentifierStr = lastChar;
+        while (isalnum((lastChar = getchar())))
+          IdentifierStr += lastChar;
 
         if (IdentifierStr == "def")
           return tok_def;
@@ -136,12 +136,12 @@ same loop, we handle them here inline. Numeric values are similar:
 
 .. code-block:: c++
 
-      if (isdigit(LastChar) || LastChar == '.') {   // Number: [0-9.]+
+      if (isdigit(lastChar) || lastChar == '.') {   // Number: [0-9.]+
         std::string NumStr;
         do {
-          NumStr += LastChar;
-          LastChar = getchar();
-        } while (isdigit(LastChar) || LastChar == '.');
+          NumStr += lastChar;
+          lastChar = getchar();
+        } while (isdigit(lastChar) || lastChar == '.');
 
         NumVal = strtod(NumStr.c_str(), 0);
         return tok_number;
@@ -156,13 +156,13 @@ extend it!  Next we handle comments:
 
 .. code-block:: c++
 
-      if (LastChar == '#') {
+      if (lastChar == '#') {
         // Comment until end of line.
         do
-          LastChar = getchar();
-        while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
+          lastChar = getchar();
+        while (lastChar != EOF && lastChar != '\n' && lastChar != '\r');
 
-        if (LastChar != EOF)
+        if (lastChar != EOF)
           return gettok();
       }
 
@@ -174,12 +174,12 @@ file. These are handled with this code:
 .. code-block:: c++
 
       // Check for end of file.  Don't eat the EOF.
-      if (LastChar == EOF)
+      if (lastChar == EOF)
         return tok_eof;
 
       // Otherwise, just return the character as its ascii value.
-      int ThisChar = LastChar;
-      LastChar = getchar();
+      int ThisChar = lastChar;
+      lastChar = getchar();
       return ThisChar;
     }
 

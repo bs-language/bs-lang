@@ -13,29 +13,33 @@
 using namespace llvm;
 
 class Parser {
-  //LLVM API
-  std::unique_ptr<LLVMContext> Context{new LLVMContext()};
-  std::unique_ptr<Module> MainModule{new Module("bs main module", *Context)};
+    //LLVM API
+    std::unique_ptr<LLVMContext> Context{new LLVMContext()};
+    std::unique_ptr<Module> MainModule{new Module("bs main module", *Context)};
 
-  //커멘드 옵션
-  cl::opt<std::string> InputFilename{cl::Positional, cl::desc("Input filename (.bs)")};
-  cl::opt<std::string> OutputFilename{"o", cl::desc("Output filename")};
-  cl::opt<bool> JIT{"jit", cl::desc("Run program Just-In-Time")};
+    //커멘드 옵션
+    cl::opt<std::string> InputFilename{cl::Positional, cl::desc("Input filename (.bs)")};
+    cl::opt<std::string> OutputFilename{"o", cl::desc("Output filename")};
+    cl::opt<bool> JIT{"jit", cl::desc("Run program Just-In-Time")};
 
-  //연산자 우선순위 맵
-  std::map<char,int> opPrecedenceMap{{'=',0},{''}};
+    //연산자 우선순위 맵
+    std::map<std::string, int> OpPrcdMap{{"=", 0}};
 
-  //렉서
-  Lexer lexer;
+    //렉서
+    Lexer lexer;
 
 public:
-  Parser(int, char **);
-  ~Parser();
-  void addMainFunction();
-  void compileToObj();
-  void runLLJIT();
+    Parser(int, char **);
 
-  void parseArithExpr();
+    ~Parser();
+
+    void addMainFunction();
+
+    void compileToObj();
+
+    void runLLJIT();
+
+    void parseArithExpr();
 
 };
 

@@ -6,8 +6,9 @@
 #define LLVM_AST_H
 
 class AST {
-  virtual void genCode() = 0;
-  virtual ~AST() = 0;
+    virtual void genCode() = 0;
+
+    virtual ~AST() = 0;
 };
 
 #endif // LLVM_AST_H

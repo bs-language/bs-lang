@@ -288,14 +288,14 @@ or parser so we'll need to add it.
    static SourceLocation LexLoc = {1, 0};
 
    static int advance() {
-     int LastChar = getchar();
+     int lastChar = getchar();
 
-     if (LastChar == '\n' || LastChar == '\r') {
+     if (lastChar == '\n' || lastChar == '\r') {
        LexLoc.Line++;
        LexLoc.Col = 0;
      } else
        LexLoc.Col++;
-     return LastChar;
+     return lastChar;
    }
 
 In this set of code we've added some functionality on how to keep track of the

@@ -14,4 +14,6 @@ add_llvm_example(bsc
         AST.h
         Parser.cpp
         Parser.h
+        util.cpp
+        util.h
         )
