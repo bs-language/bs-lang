@@ -91,10 +91,9 @@ Lexer::Token Lexer::getToken() {
     }
 
     lastWord.push_back(lastChar);
-
-    while (!isspace(lastChar)) {
+    advance();
+    if (!isspace(lastChar) && !isalnum(lastChar) && lastChar != EOF) {
         lastWord.push_back(lastChar);
-        advance();
     }
 
     if (unaryOpSet.find(lastWord) != unaryOpSet.end()) {
@@ -109,7 +108,21 @@ Lexer::Token Lexer::getToken() {
         return tok_etcop;
     }
 
-    logError(curLocation, lastWord, "undefined token");
+    lastWord.pop_back();
+
+    if (unaryOpSet.find(lastWord) != unaryOpSet.end()) {
+        return tok_unary;
+    }
+
+    if (binaryOpSet.find(lastWord) != binaryOpSet.end()) {
+        return tok_binary;
+    }
+
+    if (etcOpSet.find(lastWord) != etcOpSet.end()) {
+        return tok_etcop;
+    }
+
+    //logError(curLocation, lastWord, "undefined token");
     return tok_undefined;
 }
 
