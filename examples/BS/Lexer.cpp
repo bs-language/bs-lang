@@ -70,18 +70,18 @@ Lexer::Token Lexer::getToken() {
     }
 
     if (isnum(lastChar)) {
-        bool flt = false;
+        bool flt = false, err = false;
         while (isnum(lastChar)) {
             if (lastChar == '.') {
-                if (flt) {
-                    logError(curLocation, lastWord, "real number literal cannot have point more than one.");
-                    while (isnum(lastChar)) advance();
-                    return tok_undefined;
-                }
-                flt = true;
+                if (flt) err = true;
+                else flt = true;
             }
             lastWord.push_back(lastChar);
             advance();
+        }
+        if(err){
+            logError(curLocation, lastWord, "Invalid point on floating constant");
+            return tok_undefined;
         }
         return flt ? tok_float : tok_int;
     }
@@ -94,22 +94,24 @@ Lexer::Token Lexer::getToken() {
     advance();
     if (!isspace(lastChar) && !isalnum(lastChar) && lastChar != EOF) {
         lastWord.push_back(lastChar);
+
+        if (unaryOpSet.find(lastWord) != unaryOpSet.end()) {
+            advance();
+            return tok_unary;
+        }
+
+        if (binaryOpSet.find(lastWord) != binaryOpSet.end()) {
+            advance();
+            return tok_binary;
+        }
+
+        if (etcOpSet.find(lastWord) != etcOpSet.end()) {
+            advance();
+            return tok_etcop;
+        }
+
+        lastWord.pop_back();
     }
-
-    if (unaryOpSet.find(lastWord) != unaryOpSet.end()) {
-        return tok_unary;
-    }
-
-    if (binaryOpSet.find(lastWord) != binaryOpSet.end()) {
-        return tok_binary;
-    }
-
-    if (etcOpSet.find(lastWord) != etcOpSet.end()) {
-        return tok_etcop;
-    }
-
-    lastWord.pop_back();
-
     if (unaryOpSet.find(lastWord) != unaryOpSet.end()) {
         return tok_unary;
     }

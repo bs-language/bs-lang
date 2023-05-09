@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
 
     while (cur != Lexer::tok_eof) {
         cur = lexer.getToken();
-        logError(lexer.getLocation(), lexer.getWord(), tokenToString(cur));
+        logSymbol(lexer.getLocation(), lexer.getWord(), cur);
     }
 
     return 0;
